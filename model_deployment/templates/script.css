@@ -1,0 +1,98 @@
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f4f8;
+    color: #333;
+}
+
+h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #003f8a;
+}
+
+.highlight {
+    font-weight: bold;
+    color: #ff6f61;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* Section Styles */
+.section {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.section > div {
+    flex: 1;
+    margin: 10px;
+    text-align: center;
+    min-width: 300px;
+}
+
+/* Buttons and Inputs */
+button, input[type="submit"] {
+    background-color: #003f8a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+button:disabled {
+    background-color: #b0bec5;
+    cursor: not-allowed;
+}
+
+button:hover:not(:disabled), input[type="submit"]:hover {
+    background-color: #00264d;
+}
+
+input[type="file"] {
+    display: block;
+    margin: 10px auto;
+    font-size: 1rem;
+}
+
+/* Boxes for Displaying Results */
+.box {
+    background-color: #f9f9fc;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    height: 200px;
+    overflow-y: auto;
+    text-align: left;
+    color: #555;
+    font-size: 1rem;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .section {
+        flex-direction: column;
+        align-items: center;
+    }
+}

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Processing</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #003f8a;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #ff6f61;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        /* Section Styles */
+        .section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .section > div {
+            flex: 1;
+            margin: 10px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        /* Buttons and Inputs */
+        button, input[type="submit"] {
+            background-color: #003f8a;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+
+        button:disabled {
+            background-color: #b0bec5;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled), input[type="submit"]:hover {
+            background-color: #00264d;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 10px auto;
+            font-size: 1rem;
+        }
+
+        /* Boxes for Displaying Results */
+        .box {
+            background-color: #f9f9fc;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            color: #555;
+            font-size: 1rem;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .section {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Audio Input Section -->
+        <div class="section">
+            <div id="audio_input">
+                <h1>Record Audio (Input)</h1>
+                <button id="startButton" onclick="startRecording()">Start Recording</button>
+                <button id="stopButton" onclick="stopRecording()" disabled>Stop Recording</button>
+                <div id="recording_prompt" style="margin-top: 15px;">Click the start button to provide live audio input.</div>
+                <button id="resetButton" onclick="reset()" style="margin-top: 10px;">Start Over</button>
+            </div>
+            <div>
+                <h1 class="highlight">OR</h1>
+            </div>
+            <div>
+                <h1>Upload Audio File</h1>
+                <form method="POST" action="/upload" enctype="multipart/form-data" onsubmit="uploadAudio(event)">
+                    <label for="file">Select an audio file:</label>
+                    <input type="file" id="file" name="file" accept=".mp3,.wav,.aac,.flac" required>
+                    <input type="submit" value="Upload">
+                </form>
+                <div id="upload_message" style="margin-top: 20px; font-weight: bold; color: black;"></div>
+            </div>
+        </div>
+
+        <!-- Processing Results Section -->
+        <div class="section">
+            <div>
+                <h1>Original Transcript</h1>
+                <div id="original_transcript" class="box"></div>
+            </div>
+            <div>
+                <h1>Stammer Detection</h1>
+                <div id="detection" class="box"></div>
+            </div>
+            <div>
+                <h1>Stammer Correction</h1>
+                <div id="correction" class="box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const original_trans = document.getElementById('original_transcript');
+        const detected_trans = document.getElementById('detection');
+        const corrected_trans = document.getElementById('correction');
+        const recording_prompt = document.getElementById('recording_prompt');
+        const messageContainer = document.getElementById('upload_message');
+        const fileInput = document.getElementById('file')
+        const startBtn = document.getElementById('startButton');
+        const stopBtn = document.getElementById('stopButton');
+        const eventSource = new EventSource('/stream');
+
+        function startRecording(){
+            recording_prompt.innerHTML = "Recording started."
+            fetch('/start_recording')
+                .then(response => response.json())
+                .then(data => {
+                    // recording_prompt.innerHTML = data.message
+                })
+                .catch(error => {
+                    recording_prompt.innerHTML = error
+                });
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        }
+
+        function stopRecording(){
+            recording_prompt.innerHTML = "Recording Stopped."
+            fetch('/stop_recording')
+                .then(response => response.json())
+                .then(data => {
+                    recording_prompt.innerHTML = `${data.message}. Duration: ${data.duration}seconds`
+                    original_trans.innerHTML += `${data.transcription} `
+                })
+                .catch(error => {
+                    recording_prompt.innerHTML = error
+                });
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            // Parse the JSON response
+            const data = response.json(); // Parse the response as JSON
+            const results = data.results;  // Access the 'results' array
+            // const transcripts = results[0];
+            const detections = results[1];
+            detected_trans.innerHTML += detections
+        }
+
+        async function uploadAudio(event){
+            event.preventDefault();  // prevent the default form submission
+            
+             // Get the form and its data
+             const form = event.target;
+            const formData = new FormData(form);
+            
+            messageContainer.textContent = 'Uploading File, reading the transcripts, detecting the stutter in the speech...'
+
+            try {
+                // Make a POST request to upload the audio
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                let message = 'File Uploaded Succesfully!';
+
+                // Change the color based on response
+                if (response.ok) {
+                    
+                    // Parse the JSON response
+                    const data = await response.json(); // Parse the response as JSON
+                    const results = data.results;  // Access the 'results' array
+                    const transcripts = results[0];
+                    const detections = results[1];
+                    // const corrrections = results[2]
+
+                    messageContainer.textContent = message;
+                    messageContainer.style.color = 'green'; // Success message
+                    original_trans.innerHTML = transcripts;
+                    
+                    detected_trans.innerHTML = detections;
+                    // corrected_trans.innerHTML = corrrections
+                } else {
+                    messageContainer.textContent = `Error code ${response.status}`
+                    messageContainer.style.color = 'red'; // Error message
+                }
+            } catch (error) {
+                // Handle errors (e.g., network issues)
+                console.error('Error uploading audio:', error);
+                messageContainer.textContent = 'An error occurred while uploading. Please try again.';
+                messageContainer.style.color = 'red';
+            }
+        }
+
+
+        // eventSource.onmessage = function(event) {
+        //     const data = event.data;
+        //     detected_trans.innerHTML += data
+        // };
+
+        eventSource.onerror = function(error) {
+            console.error("Error in SSE connection: ", error);
+        };
+
+        function reset(){
+            recording_prompt.innerHTML = ""
+            original_trans.innerHTML = ""
+            detected_trans.innerHTML = ""
+            corrected_trans.innerHTML = ""
+            fileInput.value = ""
+            messageContainer.textContent = ""
+        }
+    </script>
+</body>
+</html>
